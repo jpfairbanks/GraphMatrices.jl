@@ -1,6 +1,6 @@
 module TestGraphMatrices
 using FactCheck
-reload("../src/GraphMatrices.jl")
+#reload("../src/GraphMatrices.jl")
 using GraphMatrices
 
 function subtypepredicate(T)
@@ -16,24 +16,30 @@ facts("constructors") do
 	n = 10
 	mat = SparseMatrix{Float64}(spones(sprand(n,n,0.3)))
 	adjmat = CombinatorialAdjacency(mat)
+    stochmat = StochasticAdjacency(adjmat)
+    adjhat = NormalizedAdjacency(adjmat)
+    avgmat = AveragingAdjacency(adjmat)
 	context("Adjacency") do
 		@fact adjmat.D => vec(sum(mat, 1))
 		@fact adjmat.A => mat
-		@fact convert(SparseMatrix{Float64}, adjmat) => truthy
-		@fact StochasticAdjacency(adjmat) => truthy
-		@fact NormalizedAdjacency(adjmat) => truthy
-		@fact AveragingAdjacency(adjmat) => truthy
+		@fact convert(SparseMatrix{Float64}, adjmat) => mat
+		@fact convert(SparseMatrix{Float64}, stochmat) => truthy
+		@fact convert(SparseMatrix{Float64}, adjhat) => truthy
+		@fact convert(SparseMatrix{Float64}, avgmat) => truthy
+		@fact stochmat => truthy
+		@fact adjhat => truthy
+		@fact avgmat => truthy
 	end
 
 	context("Laplacian") do
 		lapl = CombinatorialLaplacian(CombinatorialAdjacency(mat))
 		@fact lapl => truthy
 		#constructors that work.
-		@fact Adjacency(lapl)=> truthy
+		@fact Adjacency(lapl).A => mat
 		@fact StochasticAdjacency(Adjacency(lapl))=> truthy
 		@fact NormalizedAdjacency(Adjacency(lapl))=> truthy
 		@fact AveragingAdjacency(Adjacency(lapl))=> truthy
-		@fact convert(Adjacency{Float64}, lapl)=> truthy
+		@fact convert(Adjacency, lapl)=> truthy
 		@fact convert(SparseMatrix{Float64}, lapl) => truthy
 		
 		@fact Adjacency(lapl) => subtypepredicate(CombinatorialAdjacency)
@@ -85,6 +91,10 @@ facts("other tests") do
 	@fact_throws symmetrize(NormalizedAdjacency(adjmat)).A => adjmat.A
 	@fact symmetrize(CombinatorialAdjacency(adjmat)).A => adjmat.A
 	
+    context("equality testing ") do
+        @pending CombinatorialAdjacency(mat) => CombinatorialAdjacency(CombinatorialLaplacian(mat))
+        @pending Adjacency(StochasticLaplacian(mat)) => StochasticAdjacency(mat)
+    end
 end
 
 end

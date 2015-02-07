@@ -2,6 +2,7 @@ module GraphMatrices
 @doc "A package for using the type system to check types of graph matrices." GraphMatrices
 import Base.convert
 import Base.size
+import Base.scale
 import Base.*
 import Base.diag
 using FactCheck
@@ -103,6 +104,17 @@ end
 function .*(noop::Noop, x::Any)
 	return x
 end
+function scale(noop::Noop, x::Noop)
+	return x
+end
+
+function scale(noop::Noop, x::Any)
+	return x
+end
+
+function scale(x::Any, noop::Noop)
+	return x
+end
 
 @doc "postscalefactor(M)*M.A*prescalefactor(M) == M " ->
 function postscalefactor(adjmat::Adjacency)
@@ -169,17 +181,23 @@ function Adjacency(lapl::Laplacian)
 	return lapl.A
 end
 
-function convert{T}(::Type{Adjacency{T}}, lapl::Laplacian{T})
+function convert(::Type{Adjacency}, lapl::Laplacian)
 	return lapl.A
 end
-function convert{T}(::Type{SparseMatrix{T}}, adj::Adjacency{T})
-	return adj.A
+
+function convert(::Type{SparseMatrix}, adjmat::CombinatorialAdjacency)
+	return adjmat.A
 end
 
-function convert{T}(::Type{SparseMatrix{T}}, lapl::CombinatorialLaplacian{T})
+function convert{T}(::Type{SparseMatrix{T}}, adjmat::Adjacency{T})
+    A = convert(SparseMatrix, adjmat.A)
+	return scale(prescalefactor(adjmat), scale(A, postscalefactor(adjmat)))
+end
+
+function convert{T}(::Type{SparseMatrix{T}}, lapl::Laplacian{T})
 	adjmat = Adjacency(lapl)
 	A = convert(SparseMatrix{T}, adjmat)
-	L = spdiagm(degrees(lapl)) - A
+	L = spdiagm(diag(lapl)) - A
 	return L
 end
 
