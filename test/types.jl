@@ -25,9 +25,10 @@ facts("constructors") do
 		@fact convert(SparseMatrix{Float64}, stochmat) => truthy
 		@fact convert(SparseMatrix{Float64}, adjhat) => truthy
 		@fact convert(SparseMatrix{Float64}, avgmat) => truthy
-		@fact stochmat => truthy
-		@fact adjhat => truthy
-		@fact avgmat => truthy
+		@fact prescalefactor(adjhat) => postscalefactor(adjhat)
+		@fact postscalefactor(stochmat) => prescalefactor(avgmat)
+		@fact prescalefactor(adjhat) => postscalefactor(adjhat)
+		@fact prescalefactor(avgmat) => Noop()
 	end
 
 	context("Laplacian") do
@@ -110,6 +111,7 @@ facts("other tests") do
         @fact StochasticLaplacian(S) => not(adjmat)
         @fact_throws StochasticLaplacian(adjmat) => not(adjmat)
     end
+
 end
 
 end

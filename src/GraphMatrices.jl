@@ -23,7 +23,9 @@ export  convert,
 		Noop,
 		diag,
 		degrees,
-		symmetrize
+		symmetrize,
+		prescalefactor,
+		postscalefactor
 
 
 typealias SparseMatrix{T} SparseMatrixCSC{T,Int64}
@@ -133,10 +135,10 @@ end
 function postscalefactor(adjmat::NormalizedAdjacency)
 	return adjmat.scalefactor
 end
-
-function postscalefactor(adjmat::StochasticAdjacency)
+function postscalefactor(adjmat::AveragingAdjacency)
 	return adjmat.scalefactor
 end
+
 
 @doc "postscalefactor(M)*M.A*prescalefactor(M) == M " ->
 function prescalefactor(adjmat::Adjacency)
@@ -145,10 +147,10 @@ end
 function prescalefactor(adjmat::NormalizedAdjacency)
 	return adjmat.scalefactor
 end
-
-function postscalefactor(adjmat::AveragingAdjacency)
+function prescalefactor(adjmat::StochasticAdjacency)
 	return adjmat.scalefactor
 end
+
 
 @doc "Combinatorial Laplacian L = D-A" ->
 type CombinatorialLaplacian{T} <: Laplacian{T}
