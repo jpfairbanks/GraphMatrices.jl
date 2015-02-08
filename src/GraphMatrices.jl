@@ -179,8 +179,11 @@ function size(adj::Adjacency)
 end
 
 @doc "degrees of a graph as a Vector." ->
-function degrees(adjmat::Adjacency)
+function degrees(adjmat::CombinatorialAdjacency)
 	return adjmat.D
+end
+function degrees(mat::GraphMatrix)
+	return degrees(CombinatorialAdjacency(mat))
 end
 
 function degrees(lapl::Laplacian)

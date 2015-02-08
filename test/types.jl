@@ -60,6 +60,16 @@ facts("constructors") do
 		L = convert(SparseMatrix{Float64}, lapl)
 		@fact sum(abs(sum(L,1))) => 0
 	end
+
+	context("accessors") do
+		dv = degrees(adjmat)
+		@fact degrees(stochmat) => dv
+		@fact degrees(adjhat) => dv
+		@fact degrees(avgmat) => dv
+		@fact degrees(StochasticLaplacian(stochmat)) => dv
+		@fact degrees(NormalizedLaplacian(adjhat)) => dv
+		@fact degrees(AveragingLaplacian(avgmat)) => dv
+	end
 end
 
 facts("arithmetic") do
