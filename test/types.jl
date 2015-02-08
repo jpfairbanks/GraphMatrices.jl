@@ -1,6 +1,5 @@
 module TestGraphMatrices
 using FactCheck
-#reload("../src/GraphMatrices.jl")
 using GraphMatrices
 
 function subtypepredicate(T)
