@@ -6,7 +6,10 @@ import Base.scale
 import Base.*
 import Base.diag
 using FactCheck
-
+import Base.eltype
+import Base.size
+import Base.ndims
+import Base.issym
 export  convert,
 		SparseMatrix,
 		GraphMatrix,
@@ -174,11 +177,44 @@ type AveragingLaplacian{T} <: Laplacian{T}
 	A::AveragingAdjacency{T}
 end
 
+# function passthrough{T:<GraphMatrix}(f::Function, Type{T})
+# 	f(x::Type{T}) = f(x.A)
+# end
+# eltype(A)	the type of the elements contained in A
+# length(A)	the number of elements in A
+# ndims(A)	the number of dimensions of A
+# size(A)	a tuple containing the dimensions of A
+# size(A,n)	the size of A in a particular dimension
+# stride(A,k)	the stride (linear index distance between adjacent elements) along dimension k
+# strides(A)	a tuple of the strides in each dimension
+arrayfunctions = (:eltype, :length, :ndims, :size, :strides, :issym)
+for f in arrayfunctions
+	@eval $f(a::GraphMatrix) = $f(a.A)
+end
 
-
-function size(adj::Adjacency)
+size(a::GraphMatrix, i::Integer) = size(a.A, i)
+function size(adj::CombinatorialAdjacency)
 	return size(adj.A)
 end
+
+function size(adj::CombinatorialAdjacency, i::Integer)
+	return size(adj.A, i)
+end
+
+function length(adj::CombinatorialAdjacency)
+	return length(adj.A)
+end
+
+function eltype(adj::CombinatorialAdjacency)
+	return eltype(adj.A)
+end
+
+function issym(adj::CombinatorialAdjacency)
+	return issym(adj.A)
+end
+
+issym(adj::StochasticAdjacency) = false
+issym(adj::AveragingAdjacency) = false
 
 @doc "degrees of a graph as a Vector." ->
 function degrees(adjmat::CombinatorialAdjacency)
@@ -232,12 +268,6 @@ end
 
 function *{T<:Number}(adjmat::Adjacency{T}, x::Vector{T})
 	return  postscalefactor(adjmat) .* (adjmat.A * (prescalefactor(adjmat) .* x))
-end
-
-function *{T<:Number}(adj::NormalizedAdjacency{T}, x::Vector{T})
-	y = adj.A*x
-	z = y ./ adj.D
-	return z
 end
 
 function *{T<:Number}(lapl::Laplacian{T}, x::Vector{T})
