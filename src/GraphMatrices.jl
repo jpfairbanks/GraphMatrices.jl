@@ -22,6 +22,7 @@ export  convert,
 		AveragingLaplacian,
 		Noop,
 		diag,
+		degrees,
 		symmetrize
 
 
