@@ -192,10 +192,11 @@ for f in arrayfunctions
 	@eval $f(a::GraphMatrix) = $f(a.A)
 end
 
-size(a::GraphMatrix, i::Integer) = size(a.A, i)
 function size(adj::CombinatorialAdjacency)
 	return size(adj.A)
 end
+
+size(a::GraphMatrix, i::Integer) = size(a.A, i)
 
 function size(adj::CombinatorialAdjacency, i::Integer)
 	return size(adj.A, i)
@@ -212,7 +213,6 @@ end
 function issym(adj::CombinatorialAdjacency)
 	return issym(adj.A)
 end
-
 issym(adj::StochasticAdjacency) = false
 issym(adj::AveragingAdjacency) = false
 
