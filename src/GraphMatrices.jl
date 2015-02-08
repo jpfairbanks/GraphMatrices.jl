@@ -116,6 +116,15 @@ function scale(x::Any, noop::Noop)
 	return x
 end
 
+function ==(g::GraphMatrix, h::GraphMatrix)
+	if typeof(g) != typeof(h)
+		return false
+	end
+	if g.A == h.A
+		return true
+	end
+end
+
 @doc "postscalefactor(M)*M.A*prescalefactor(M) == M " ->
 function postscalefactor(adjmat::Adjacency)
 	return Noop()
@@ -185,6 +194,10 @@ function convert(::Type{Adjacency}, lapl::Laplacian)
 	return lapl.A
 end
 
+function convert(::Type{CombinatorialAdjacency}, adjmat::Adjacency)
+	return adjmat.A
+end
+
 function convert(::Type{SparseMatrix}, adjmat::CombinatorialAdjacency)
 	return adjmat.A
 end
@@ -230,7 +243,7 @@ end
 @doc "Symmetrize the matrix.
 :triu, :tril, :sum, :or.
 use :sum for weighted graphs."->
-function symmetrize(A, which=:or)
+function symmetrize(A::SparseMatrix, which=:or)
 	if which==:triu
 		T = triu(A)
 	end

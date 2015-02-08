@@ -88,11 +88,17 @@ facts("other tests") do
 	@fact_throws symmetrize(StochasticAdjacency{Float64}(adjmat))
 	@fact_throws symmetrize(AveragingAdjacency{Float64}(adjmat))
 	@fact_throws symmetrize(NormalizedAdjacency(adjmat)).A => adjmat.A
-	@fact symmetrize(CombinatorialAdjacency(adjmat)).A => adjmat.A
+	@fact symmetrize(adjmat).A => adjmat.A
 	
     context("equality testing ") do
-        @pending CombinatorialAdjacency(mat) => CombinatorialAdjacency(CombinatorialLaplacian(mat))
-        @pending Adjacency(StochasticLaplacian(mat)) => StochasticAdjacency(mat)
+        @fact CombinatorialAdjacency(mat) => CombinatorialAdjacency(mat)
+        S = StochasticAdjacency(CombinatorialAdjacency(mat))
+        @fact S.A => S.A
+        @fact Adjacency(S) => not(S.A)
+        @fact CombinatorialAdjacency(S) => S.A
+        @fact NormalizedAdjacency(adjmat) => not(adjmat)
+        @fact StochasticLaplacian(S) => not(adjmat)
+        @fact_throws StochasticLaplacian(adjmat) => not(adjmat)
     end
 end
 
