@@ -3,7 +3,6 @@ module GraphMatrices
 import Base.convert
 import Base.size
 import Base.scale
-import Base.*
 import Base.diag
 using FactCheck
 
@@ -62,7 +61,7 @@ type NormalizedAdjacency{T} <: Adjacency{T}
 	A::CombinatorialAdjacency{T}
 	scalefactor::Vector{T}
 
-	function NormalizedAdjacency{T}(adjmat::CombinatorialAdjacency{T})
+	function NormalizedAdjacency(adjmat::CombinatorialAdjacency)
 		sf = adjmat.D.^(-1/2)
 		return new(adjmat, sf)
 	end
@@ -89,7 +88,7 @@ type AveragingAdjacency{T} <: Adjacency{T}
 	A::CombinatorialAdjacency{T}
 	scalefactor::Vector{T}
 
-	function AveragingAdjacency{T}(adjmat::CombinatorialAdjacency{T})
+	function AveragingAdjacency(adjmat::CombinatorialAdjacency)
 		sf = adjmat.D.^(-1)
 		return new(adjmat, sf)
 	end
@@ -102,18 +101,18 @@ The purpose is to help write more general code for the different scaled GraphMat
 type Noop
 end
 
-function .*(noop::Noop, x::Any)
+function .*(::Noop, x::Any)
 	return x
 end
-function scale(noop::Noop, x::Noop)
-	return x
-end
-
-function scale(noop::Noop, x::Any)
+function scale(::Noop, x::Noop)
 	return x
 end
 
-function scale(x::Any, noop::Noop)
+function scale(::Noop, x::Any)
+	return x
+end
+
+function scale(x::Any, ::Noop)
 	return x
 end
 
@@ -127,7 +126,7 @@ function ==(g::GraphMatrix, h::GraphMatrix)
 end
 
 @doc "postscalefactor(M)*M.A*prescalefactor(M) == M " ->
-function postscalefactor(adjmat::Adjacency)
+function postscalefactor(::Adjacency)
 	return Noop()
 end
 function postscalefactor(adjmat::NormalizedAdjacency)
@@ -139,7 +138,7 @@ function postscalefactor(adjmat::StochasticAdjacency)
 end
 
 @doc "postscalefactor(M)*M.A*prescalefactor(M) == M " ->
-function prescalefactor(adjmat::Adjacency)
+function prescalefactor(::Adjacency)
 	return Noop()
 end
 function prescalefactor(adjmat::NormalizedAdjacency)

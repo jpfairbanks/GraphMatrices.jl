@@ -80,13 +80,14 @@ facts("arithmetic") do
 	averaadj = AveragingAdjacency{Float64}(adjmat)
 	hatadj = NormalizedAdjacency(adjmat)
 	lapl = CombinatorialLaplacian(adjmat)
+	hatlapl = NormalizedLaplacian(hatadj)
 	onevec = ones(Float64, n)
 	adjmat*ones(Float64, n)
 	@fact sum(abs(adjmat*onevec)) => not(0)
 	@fact sum(abs(stochadj*onevec/sum(onevec))) => roughly(1)
 	@fact sum(abs(lapl*onevec)) => 0
 	@pending hatadj => 1
-	@pending hatlapl => 1
+	@fact hatlapl => truthy
 	@pending averaadj => 1
 end
 
