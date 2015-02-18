@@ -5,7 +5,10 @@ import Base.size
 import Base.scale
 import Base.diag
 using FactCheck
-
+import Base.eltype
+import Base.size
+import Base.ndims
+import Base.issym
 export  convert,
 		SparseMatrix,
 		GraphMatrix,
@@ -22,7 +25,9 @@ export  convert,
 		Noop,
 		diag,
 		degrees,
-		symmetrize
+		symmetrize,
+		prescalefactor,
+		postscalefactor
 
 
 typealias SparseMatrix{T} SparseMatrixCSC{T,Int64}
@@ -132,10 +137,10 @@ end
 function postscalefactor(adjmat::NormalizedAdjacency)
 	return adjmat.scalefactor
 end
-
-function postscalefactor(adjmat::StochasticAdjacency)
+function postscalefactor(adjmat::AveragingAdjacency)
 	return adjmat.scalefactor
 end
+
 
 @doc "postscalefactor(M)*M.A*prescalefactor(M) == M " ->
 function prescalefactor(::Adjacency)
@@ -144,10 +149,10 @@ end
 function prescalefactor(adjmat::NormalizedAdjacency)
 	return adjmat.scalefactor
 end
-
-function postscalefactor(adjmat::AveragingAdjacency)
+function prescalefactor(adjmat::StochasticAdjacency)
 	return adjmat.scalefactor
 end
+
 
 @doc "Combinatorial Laplacian L = D-A" ->
 type CombinatorialLaplacian{T} <: Laplacian{T}
@@ -171,15 +176,23 @@ type AveragingLaplacian{T} <: Laplacian{T}
 	A::AveragingAdjacency{T}
 end
 
-
-
-function size(adj::Adjacency)
-	return size(adj.A)
+# function passthrough{T:<GraphMatrix}(f::Function, Type{T})
+# 	f(x::Type{T}) = f(x.A)
+# end
+# eltype(A)	the type of the elements contained in A
+# length(A)	the number of elements in A
+# ndims(A)	the number of dimensions of A
+# size(A)	a tuple containing the dimensions of A
+# size(A,n)	the size of A in a particular dimension
+# stride(A,k)	the stride (linear index distance between adjacent elements) along dimension k
+# strides(A)	a tuple of the strides in each dimension
+arrayfunctions = (:eltype, :length, :ndims, :size, :strides, :issym)
+for f in arrayfunctions
+	@eval $f(a::GraphMatrix) = $f(a.A)
 end
-
-function size(lapl::Laplacian)
-	return size(lapl.A)
-end
+size(a::GraphMatrix, i::Integer) = size(a.A, i)
+issym(::StochasticAdjacency) = false
+issym(::AveragingAdjacency) = false
 
 @doc "degrees of a graph as a Vector." ->
 function degrees(adjmat::CombinatorialAdjacency)
@@ -233,12 +246,6 @@ end
 
 function *{T<:Number}(adjmat::Adjacency{T}, x::Vector{T})
 	return  postscalefactor(adjmat) .* (adjmat.A * (prescalefactor(adjmat) .* x))
-end
-
-function *{T<:Number}(adj::NormalizedAdjacency{T}, x::Vector{T})
-	y = adj.A*x
-	z = y ./ adj.D
-	return z
 end
 
 function *{T<:Number}(lapl::Laplacian{T}, x::Vector{T})

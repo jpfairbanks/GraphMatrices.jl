@@ -25,9 +25,10 @@ facts("constructors") do
 		@fact convert(SparseMatrix{Float64}, stochmat) => truthy
 		@fact convert(SparseMatrix{Float64}, adjhat) => truthy
 		@fact convert(SparseMatrix{Float64}, avgmat) => truthy
-		@fact stochmat => truthy
-		@fact adjhat => truthy
-		@fact avgmat => truthy
+		@fact prescalefactor(adjhat) => postscalefactor(adjhat)
+		@fact postscalefactor(stochmat) => prescalefactor(avgmat)
+		@fact prescalefactor(adjhat) => postscalefactor(adjhat)
+		@fact prescalefactor(avgmat) => Noop()
 	end
 
 	context("Laplacian") do
@@ -63,12 +64,16 @@ facts("constructors") do
 
 	context("accessors") do
 		dv = degrees(adjmat)
-		@fact degrees(stochmat) => dv
-		@fact degrees(adjhat) => dv
-		@fact degrees(avgmat) => dv
 		@fact degrees(StochasticLaplacian(stochmat)) => dv
 		@fact degrees(NormalizedLaplacian(adjhat)) => dv
 		@fact degrees(AveragingLaplacian(avgmat)) => dv
+
+		for m in (adjmat, stochmat, adjhat, avgmat)
+			@fact degrees(m) => dv
+			@fact eltype(m) => eltype(m.A)
+			@fact size(m) => (n,n)
+			#@fact length(m) => length(adjmat.A)
+		end
 	end
 end
 
@@ -76,19 +81,27 @@ facts("arithmetic") do
 	n = 10
 	mat = symmetrize(SparseMatrix{Float64}(spones(sprand(n,n,0.3))))
 	adjmat = CombinatorialAdjacency(mat)
-	stochadj = StochasticAdjacency{Float64}(adjmat)
-	averaadj = AveragingAdjacency{Float64}(adjmat)
-	hatadj = NormalizedAdjacency(adjmat)
+	stochadj = StochasticAdjacency(adjmat)
+	averaadj = AveragingAdjacency(adjmat)
+	adjhat = NormalizedAdjacency(adjmat)
 	lapl = CombinatorialLaplacian(adjmat)
-	hatlapl = NormalizedLaplacian(hatadj)
 	onevec = ones(Float64, n)
 	adjmat*ones(Float64, n)
 	@fact sum(abs(adjmat*onevec)) => not(0)
 	@fact sum(abs(stochadj*onevec/sum(onevec))) => roughly(1)
 	@fact sum(abs(lapl*onevec)) => 0
-	@pending hatadj => 1
-	@fact hatlapl => truthy
-	@pending averaadj => 1
+	g(a) = sum(abs(sum(SparseMatrix{Float64}(a),1)))
+	@fact g(lapl) => 0
+	@fact g(NormalizedLaplacian(adjhat)) => not(roughly(0))
+	@fact g(StochasticLaplacian(stochadj)) => not(roughly(0))
+	
+	@fact eigs(adjmat, which=:LR)[1][1] => greater_than(1.0)
+	@fact eigs(stochadj, which=:LR)[1][1] => roughly(1.0)
+	@fact eigs(averaadj, which=:LR)[1][1] => roughly(1.0)
+	@fact eigs(lapl, which=:LR)[1][1] => greater_than(2.0)
+	@fact_throws eigs(lapl, which=:SM)[1][1] => greater_than(-0.0)
+	lhat = NormalizedLaplacian(adjhat)
+	@fact eigs(lhat, which=:LR)[1][1] => less_than(2.0)
 end
 
 facts("other tests") do
@@ -96,6 +109,10 @@ facts("other tests") do
 	mat = symmetrize(SparseMatrix{Float64}(spones(sprand(n,n,0.3))))
 	adjmat = CombinatorialAdjacency(mat)
 	lapl = CombinatorialLaplacian(CombinatorialAdjacency(mat))
+	@fact size(lapl, 1) => n
+	@fact size(lapl, 2) => n
+	@fact size(lapl, 3) => 1
+	
 	@fact_throws symmetrize(StochasticAdjacency{Float64}(adjmat))
 	@fact_throws symmetrize(AveragingAdjacency{Float64}(adjmat))
 	@fact_throws symmetrize(NormalizedAdjacency(adjmat)).A => adjmat.A
@@ -111,6 +128,7 @@ facts("other tests") do
         @fact StochasticLaplacian(S) => not(adjmat)
         @fact_throws StochasticLaplacian(adjmat) => not(adjmat)
     end
+
 end
 
 end
