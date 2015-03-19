@@ -86,6 +86,12 @@ but the numbers that it outputs and the conclusion one draws from those numbers 
 Strong typing should help users of this package catch math bugs as type errors as early as possible.
 
 #### Examples
+We can use the typing in order to protect ourselves from applying a function to the wrong type of graph matrix.
+In principle all graph matrices can be stored as a `SparseMatrixCSC`. If you are only using one type of graph matrix in your code then this is fine. However when comparing methods across the different types to evaluate the effect of normalization on an algorithm, one should think of the different graph matrices as different data types.
+
+You know that the stationary distribution of a Markov chain (random walk) can be computed as an eigenvector problem. But you might be writing code and forget which eigenvector of which matrix gives you the stationary distribution.
+Here we protect help ourselves by defining function `stationarydistribution` for `StochasticAdjacency` matrices and then making another method that will remember which normalization to use for us.
+
 ````julia
     using GraphMatrices
 
@@ -114,6 +120,10 @@ Strong typing should help users of this package catch math bugs as type errors a
     A = CombinatorialAdjacency(M)
     @show stationarydistribution(A; ncv=10)  
 ````
+Now if we call `stationarydistribution` on a `CombinatorialAdjacency`, dispatch will call the right method which will normalize the matrix and then compute the right vector. Since the `GraphMatrix` objects are lightweight, we don't care about computing the normalized version multiple times. And we no longer need to remember which normalization to use with each function.
+
+You may notice that we just call `eigs` directly on a `StochasticAdjacency` object. That is possible because all of the graph types support the functions necessary to run `ARPACK` on them. If you run into a function where calling it on a graph type does not work as expected, file an issue and we can support whatever functions you need.
+You can always call `convert(SparseMatrix{Float64}, adjmat)` in order to realize the matrix as a sparse matrix in case you need to pass it to a function that expects a `SparseMatrixCSC` type. 
 
 ## The Future!
 This package will be simple and provide just a few types and methods in order to make it easier to maintain.
