@@ -85,6 +85,36 @@ Math bugs are some of the hardest to detect because the program will run without
 but the numbers that it outputs and the conclusion one draws from those numbers will be wrong.
 Strong typing should help users of this package catch math bugs as type errors as early as possible.
 
+#### Examples
+````julia
+    using GraphMatrices
+
+    @doc "Computes the stationary distribution of a random walk" ->
+    function stationarydistribution(R::StochasticAdjacency; kwargs...)
+        er = eigs(R, nev=1, which=:LR; kwargs...)
+        l1 = er[1][1]
+        abs(l1 -1) < 1e-8 || error("failed to compute stationary distribution")
+        p = real(er[2][:,1])
+        if p[1] < 0
+            for i in 1:length(p)
+                p[i] = -p[i]
+            end
+        end
+        return p
+    end
+
+    function stationarydistribution(A::CombinatorialAdjacency; kwargs...)
+        R = StochasticAdjacency(A)
+        stationarydistribution(R; kwargs...)
+    end
+    n = 100
+    p = 16/n
+    M = sprand(n,n, p)
+    M.nzval[:] = 1.0
+    A = CombinatorialAdjacency(M)
+    @show stationarydistribution(A; ncv=10)  
+````
+
 ## The Future!
 This package will be simple and provide just a few types and methods in order to make it easier to maintain.
 The generalization of this interface to alternative storage formats besides SparseMatrixCSC would be nice
