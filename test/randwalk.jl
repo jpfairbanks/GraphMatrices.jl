@@ -1,5 +1,8 @@
 using GraphMatrices
 using FactCheck
+if VERSION < v"0.4"
+	using Docile
+end
 
 @doc "Computes the stationary distribution of a random walk" ->
 function stationarydistribution(R::StochasticAdjacency; kwargs...)
