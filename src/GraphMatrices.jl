@@ -1,5 +1,9 @@
 module GraphMatrices
-@doc "A package for using the type system to check types of graph matrices." GraphMatrices
+if VERSION < v"0.4.0-dev"
+	using Docile
+	using Compat
+end
+@doc "A package for using the type system to check types of graph matrices." -> GraphMatrices
 import Base.convert
 import Base.size
 import Base.scale
@@ -28,6 +32,7 @@ export  convert,
 		symmetrize,
 		prescalefactor,
 		postscalefactor
+
 
 
 typealias SparseMatrix{T} SparseMatrixCSC{T,Int64}
@@ -106,9 +111,6 @@ The purpose is to help write more general code for the different scaled GraphMat
 type Noop
 end
 
-function .*(::Noop, x::Any)
-	return x
-end
 function scale(::Noop, x::Noop)
 	return x
 end
@@ -118,6 +120,10 @@ function scale(::Noop, x::Any)
 end
 
 function scale(x::Any, ::Noop)
+	return x
+end
+
+function .*(::Noop, x::Any)
 	return x
 end
 
@@ -206,7 +212,7 @@ function degrees(lapl::Laplacian)
 	return degrees(Adjacency(lapl))
 end
 
-function Adjacency(lapl::Laplacian)
+function adjacency(lapl::Laplacian)
 	return lapl.A
 end
 
