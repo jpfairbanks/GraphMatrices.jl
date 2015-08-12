@@ -6,6 +6,13 @@ include("types.jl")
 
 using TestGraphMatrices
 
+function symmetrize(g::Graph, s::Symbol)
+    return g
+end
+function symmetrize(g::DiGraph, s::Symbol)
+    return Graph(g)
+end
+
 import GraphMatrices.CombinatorialAdjacency
 
 function CombinatorialAdjacency(A)
@@ -40,6 +47,11 @@ end
 facts("arithmetic") do
 	n = 10
     mat = PathGraph(10)
+    @fact eltype(mat) => Float64
+    @fact zero(eltype(mat)) => 0.0
+    adjmat = CombinatorialAdjacency(mat)
+    @fact eltype(adjmat) => Float64
+    @fact zero(eltype(adjmat)) => 0.0
     test_arithmetic(mat, n)
 end
 

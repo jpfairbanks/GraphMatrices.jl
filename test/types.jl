@@ -25,7 +25,7 @@ function test_adjacency(mat)
     adjmat, stochmat, adjhat, avgmat = constructors(mat)
     @fact adjmat.D => vec(sum(mat, 1))
     @fact adjmat.A => mat
-    @fact convert(SparseMatrix{Float64}, adjmat) => mat
+    @fact convert(SparseMatrix{Float64}, adjmat) => sparse(mat)
     @fact convert(SparseMatrix{Float64}, stochmat) => truthy
     @fact convert(SparseMatrix{Float64}, adjhat) => truthy
     @fact convert(SparseMatrix{Float64}, avgmat) => truthy
@@ -91,7 +91,7 @@ function test_arithmetic(mat, n)
     adjmat, stochmat, adjhat, avgmat = constructors(mat)
 	lapl = CombinatorialLaplacian(adjmat)
 	onevec = ones(Float64, n)
-	adjmat*ones(Float64, n)
+	v = @show adjmat*ones(Float64, n)
 	@fact sum(abs(adjmat*onevec)) => not(0)
     @fact sum(abs(stochmat*onevec/sum(onevec))) => roughly(1)
 	@fact sum(abs(lapl*onevec)) => 0
@@ -106,7 +106,7 @@ function test_arithmetic(mat, n)
 	@fact eigs(lapl, which=:LR)[1][1] => greater_than(2.0)
 	@fact_throws eigs(lapl, which=:SM)[1][1] # => greater_than(-0.0)
 	lhat = NormalizedLaplacian(adjhat)
-	@fact eigs(lhat, which=:LR)[1][1] => less_than(2.0)
+	@fact eigs(lhat, which=:LR)[1][1] => less_than(2.0 + 1e-9)
 end
 
 function test_other(mat, n )
@@ -119,7 +119,6 @@ function test_other(mat, n )
 	@fact_throws symmetrize(StochasticAdjacency{Float64}(adjmat))
 	@fact_throws symmetrize(AveragingAdjacency{Float64}(adjmat))
 	@fact_throws symmetrize(NormalizedAdjacency(adjmat)).A # => adjmat.A
-	@fact symmetrize(adjmat).A => adjmat.A
 	
     context("equality testing ") do
         @fact CombinatorialAdjacency(mat) => CombinatorialAdjacency(mat)
@@ -131,6 +130,19 @@ function test_other(mat, n )
         @fact StochasticLaplacian(S) => not(adjmat)
         @fact_throws StochasticLaplacian(adjmat) # => not(adjmat)
     end
+end
+
+function test_symmetry(mat,n)
+	adjmat = CombinatorialAdjacency(mat)
+	lapl = CombinatorialLaplacian(CombinatorialAdjacency(mat))
+	@fact size(lapl, 1) => n
+	@fact size(lapl, 2) => n
+	@fact size(lapl, 3) => 1
+	
+	@fact_throws symmetrize(StochasticAdjacency{Float64}(adjmat))
+	@fact_throws symmetrize(AveragingAdjacency{Float64}(adjmat))
+	@fact_throws symmetrize(NormalizedAdjacency(adjmat)).A # => adjmat.A
+	@fact symmetrize(adjmat).A => adjmat.A
 end
 
 facts("constructors") do
@@ -160,6 +172,7 @@ facts("other tests") do
 	n = 10
 	mat = symmetrize(sparse(spones(sprand(n,n,0.3))))
     test_other(mat, n)
+	test_symmetry(mat, n)
 end
 
 end
