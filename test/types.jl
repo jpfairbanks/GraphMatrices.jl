@@ -1,6 +1,7 @@
 module TestGraphMatrices
 using FactCheck
 using GraphMatrices
+import GraphMatrices.SparseMatrix
 
 function subtypepredicate(T)
 	pred(x) = issubtype(typeof(x), T)
