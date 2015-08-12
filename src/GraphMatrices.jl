@@ -1,6 +1,11 @@
 module GraphMatrices
-@doc "A package for using the type system to check types of graph matrices." GraphMatrices
+if VERSION < v"0.4.0-dev"
+	using Docile
+	using Compat
+end
+@doc "A package for using the type system to check types of graph matrices." -> GraphMatrices
 import Base.convert
+import Base.sparse
 import Base.size
 import Base.scale
 import Base.diag
@@ -12,7 +17,7 @@ import Base.issym
 export  convert,
 		SparseMatrix,
 		GraphMatrix,
-		Adjacency,
+		adjacency,
 		Laplacian,
 		CombinatorialAdjacency,
 		CombinatorialLaplacian,
@@ -28,6 +33,7 @@ export  convert,
 		symmetrize,
 		prescalefactor,
 		postscalefactor
+
 
 
 typealias SparseMatrix{T} SparseMatrixCSC{T,Int64}
@@ -106,9 +112,6 @@ The purpose is to help write more general code for the different scaled GraphMat
 type Noop
 end
 
-function .*(::Noop, x::Any)
-	return x
-end
 function scale(::Noop, x::Noop)
 	return x
 end
@@ -118,6 +121,10 @@ function scale(::Noop, x::Any)
 end
 
 function scale(x::Any, ::Noop)
+	return x
+end
+
+function .*(::Noop, x::Any)
 	return x
 end
 
@@ -199,21 +206,28 @@ function degrees(adjmat::CombinatorialAdjacency)
 	return adjmat.D
 end
 function degrees(mat::GraphMatrix)
-	return degrees(CombinatorialAdjacency(mat))
+	return degrees(adjacency(mat))
 end
 
-function degrees(lapl::Laplacian)
-	return degrees(Adjacency(lapl))
+# function degrees(lapl::Laplacian)
+# 	return degrees(adjacency(lapl))
+# end
+
+function adjacency(lapl::Laplacian)
+	return lapl.A
 end
 
-function Adjacency(lapl::Laplacian)
+function adjacency(lapl::GraphMatrix)
 	return lapl.A
 end
 
 function convert(::Type{Adjacency}, lapl::Laplacian)
 	return lapl.A
 end
-
+if VERSION < v"0.4"
+	combinatorialadjacency(adjmat::Adjacency) = adjmat.A
+	# combinatorialadjacency(adjmat::Laplacian) = adjmat.A
+end
 function convert(::Type{CombinatorialAdjacency}, adjmat::Adjacency)
 	return adjmat.A
 end
@@ -222,13 +236,27 @@ function convert(::Type{SparseMatrix}, adjmat::CombinatorialAdjacency)
 	return adjmat.A
 end
 
+sparse(m::SparseMatrixCSC{Float64,Int64}) = m
+
+function sparse{M <: Laplacian}(lapl::M)
+	adjmat = adjacency(lapl)
+	A = sparse(adjmat)
+	L = spdiagm(diag(lapl)) - A
+	return L
+end
+
+function sparse(adjmat::Adjacency)
+    A = sparse(adjmat.A)
+	return scale(prescalefactor(adjmat), scale(A, postscalefactor(adjmat)))
+end
+
 function convert{T}(::Type{SparseMatrix{T}}, adjmat::Adjacency{T})
-    A = convert(SparseMatrix, adjmat.A)
+    A = sparse(adjmat.A)
 	return scale(prescalefactor(adjmat), scale(A, postscalefactor(adjmat)))
 end
 
 function convert{T}(::Type{SparseMatrix{T}}, lapl::Laplacian{T})
-	adjmat = Adjacency(lapl)
+	adjmat = adjacency(lapl)
 	A = convert(SparseMatrix{T}, adjmat)
 	L = spdiagm(diag(lapl)) - A
 	return L
@@ -249,7 +277,7 @@ function *{T<:Number}(adjmat::Adjacency{T}, x::Vector{T})
 end
 
 function *{T<:Number}(lapl::Laplacian{T}, x::Vector{T})
-	y = Adjacency(lapl)*x
+	y = adjacency(lapl)*x
 	z = diag(lapl) .* x
 	return z - y
 end

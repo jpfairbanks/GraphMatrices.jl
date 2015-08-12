@@ -1,6 +1,7 @@
 module TestGraphMatrices
 using FactCheck
 using GraphMatrices
+import GraphMatrices.SparseMatrix
 
 function subtypepredicate(T)
 	pred(x) = issubtype(typeof(x), T)
@@ -13,7 +14,7 @@ end
 
 facts("constructors") do
 	n = 10
-	mat = SparseMatrix{Float64}(spones(sprand(n,n,0.3)))
+	mat = sparse(spones(sprand(n,n,0.3)))
 	adjmat = CombinatorialAdjacency(mat)
     stochmat = StochasticAdjacency(adjmat)
     adjhat = NormalizedAdjacency(adjmat)
@@ -35,29 +36,34 @@ facts("constructors") do
 		lapl = CombinatorialLaplacian(CombinatorialAdjacency(mat))
 		@fact lapl => truthy
 		#constructors that work.
-		@fact Adjacency(lapl).A => mat
-		@fact StochasticAdjacency(Adjacency(lapl))=> truthy
-		@fact NormalizedAdjacency(Adjacency(lapl))=> truthy
-		@fact AveragingAdjacency(Adjacency(lapl))=> truthy
-		@fact convert(Adjacency, lapl)=> truthy
-		@fact convert(SparseMatrix{Float64}, lapl) => truthy
-		
-		@fact Adjacency(lapl) => subtypepredicate(CombinatorialAdjacency)
+		@fact adjacency(lapl).A => mat
+		@fact StochasticAdjacency(adjacency(lapl)) => truthy
+		@fact NormalizedAdjacency(adjacency(lapl))=> truthy
+		@fact AveragingAdjacency(adjacency(lapl))=> truthy
+		if VERSION >= v"0.4"
+			@fact convert(Adjacency, lapl)=> truthy
+			@fact convert(SparseMatrix{Float64}, lapl) => truthy
+		else
+			@fact adjacency(lapl) => truthy
+			@fact sparse(lapl) => truthy
+		end
+
+		@fact adjacency(lapl) => subtypepredicate(CombinatorialAdjacency)
 		stochlapl = StochasticLaplacian(StochasticAdjacency{Float64}(adjmat))
-		@fact Adjacency(stochlapl) => subtypepredicate(StochasticAdjacency)
+		@fact adjacency(stochlapl) => subtypepredicate(StochasticAdjacency)
 		averaginglapl = AveragingLaplacian(AveragingAdjacency{Float64}(adjmat))
-		@fact Adjacency(averaginglapl) => subtypepredicate(AveragingAdjacency)
+		@fact adjacency(averaginglapl) => subtypepredicate(AveragingAdjacency)
 		
 		normalizedlapl = NormalizedLaplacian(NormalizedAdjacency{Float64}(adjmat))
-		@fact Adjacency(normalizedlapl) => subtypepredicate(NormalizedAdjacency)
-		@fact Adjacency(normalizedlapl) => isnot(subtypepredicate(CombinatorialAdjacency))
+		@fact adjacency(normalizedlapl) => subtypepredicate(NormalizedAdjacency)
+		@fact adjacency(normalizedlapl) => isnot(subtypepredicate(CombinatorialAdjacency))
 
 		#constructors that fail.
-		@fact_throws CombinatorialAdjacency(lapl)=> truthy
-		@fact_throws StochasticLaplacian(lapl) => truthy
-		@fact_throws NormalizedLaplacian(lapl) => truthy
-		@fact_throws AveragingLaplacian(lapl) => truthy
-		@fact_throws convert(CombinatorialAdjacency, lapl)=> truthy
+		@fact_throws CombinatorialAdjacency(lapl)
+		@fact_throws StochasticLaplacian(lapl)# => truthy
+		@fact_throws NormalizedLaplacian(lapl)# => truthy
+		@fact_throws AveragingLaplacian(lapl)#  => truthy
+		@fact_throws convert(CombinatorialAdjacency, lapl) # => truthy
 		L = convert(SparseMatrix{Float64}, lapl)
 		@fact sum(abs(sum(L,1))) => 0
 	end
@@ -79,7 +85,7 @@ end
 
 facts("arithmetic") do
 	n = 10
-	mat = symmetrize(SparseMatrix{Float64}(spones(sprand(n,n,0.3))))
+	mat = symmetrize(sparse(spones(sprand(n,n,0.3))))
 	adjmat = CombinatorialAdjacency(mat)
 	stochadj = StochasticAdjacency(adjmat)
 	averaadj = AveragingAdjacency(adjmat)
@@ -90,23 +96,23 @@ facts("arithmetic") do
 	@fact sum(abs(adjmat*onevec)) => not(0)
 	@fact sum(abs(stochadj*onevec/sum(onevec))) => roughly(1)
 	@fact sum(abs(lapl*onevec)) => 0
-	g(a) = sum(abs(sum(SparseMatrix{Float64}(a),1)))
+	g(a) = sum(abs(sum(sparse(a),1)))
 	@fact g(lapl) => 0
 	@fact g(NormalizedLaplacian(adjhat)) => not(roughly(0))
 	@fact g(StochasticLaplacian(stochadj)) => not(roughly(0))
-	
+
 	@fact eigs(adjmat, which=:LR)[1][1] => greater_than(1.0)
 	@fact eigs(stochadj, which=:LR)[1][1] => roughly(1.0)
 	@fact eigs(averaadj, which=:LR)[1][1] => roughly(1.0)
 	@fact eigs(lapl, which=:LR)[1][1] => greater_than(2.0)
-	@fact_throws eigs(lapl, which=:SM)[1][1] => greater_than(-0.0)
+	@fact_throws eigs(lapl, which=:SM)[1][1] # => greater_than(-0.0)
 	lhat = NormalizedLaplacian(adjhat)
 	@fact eigs(lhat, which=:LR)[1][1] => less_than(2.0)
 end
 
 facts("other tests") do
 	n = 10
-	mat = symmetrize(SparseMatrix{Float64}(spones(sprand(n,n,0.3))))
+	mat = symmetrize(sparse(spones(sprand(n,n,0.3))))
 	adjmat = CombinatorialAdjacency(mat)
 	lapl = CombinatorialLaplacian(CombinatorialAdjacency(mat))
 	@fact size(lapl, 1) => n
@@ -115,18 +121,18 @@ facts("other tests") do
 	
 	@fact_throws symmetrize(StochasticAdjacency{Float64}(adjmat))
 	@fact_throws symmetrize(AveragingAdjacency{Float64}(adjmat))
-	@fact_throws symmetrize(NormalizedAdjacency(adjmat)).A => adjmat.A
+	@fact_throws symmetrize(NormalizedAdjacency(adjmat)).A # => adjmat.A
 	@fact symmetrize(adjmat).A => adjmat.A
 	
     context("equality testing ") do
         @fact CombinatorialAdjacency(mat) => CombinatorialAdjacency(mat)
         S = StochasticAdjacency(CombinatorialAdjacency(mat))
         @fact S.A => S.A
-        @fact Adjacency(S) => not(S.A)
-        @fact CombinatorialAdjacency(S) => S.A
+        @fact sparse(S) => not(S.A)
+        @fact adjacency(S) => S.A
         @fact NormalizedAdjacency(adjmat) => not(adjmat)
         @fact StochasticLaplacian(S) => not(adjmat)
-        @fact_throws StochasticLaplacian(adjmat) => not(adjmat)
+        @fact_throws StochasticLaplacian(adjmat) # => not(adjmat)
     end
 
 end
