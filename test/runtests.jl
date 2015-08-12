@@ -4,3 +4,4 @@ using FactCheck
 
 include("types.jl")
 include("randwalk.jl")
+include("lightgraphs.jl")

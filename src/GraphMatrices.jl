@@ -55,15 +55,16 @@ abstract Adjacency{T} <: GraphMatrix{T}
 abstract Laplacian{T} <: GraphMatrix
 
 @doc "Combinatorial Adjacency matrix is the standard adjacency matrix from math" ->
-type CombinatorialAdjacency{T} <: Adjacency{T}
-	A::SparseMatrix{T}
-	D::Vector{T}
+type CombinatorialAdjacency{T,S,V} <: Adjacency{T}
+	A::S
+	D::V
 end
 
 function CombinatorialAdjacency{T}(A::SparseMatrix{T})
 	D = vec(sum(A,1))
-	return CombinatorialAdjacency(A,D)
+	return CombinatorialAdjacency{T,SparseMatrix{T},typeof(D)}(A,D)
 end
+
 
 @doc "Normalized Adjacency matrix is \$\\hat{A} = D^{-1/2} A D^{-1/2}\$.
 If A is symmetric, then the normalized adjacency is also symmetric
