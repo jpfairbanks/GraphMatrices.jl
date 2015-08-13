@@ -4,16 +4,8 @@ if VERSION < v"0.4.0-dev"
 	using Compat
 end
 @doc "A package for using the type system to check types of graph matrices." -> GraphMatrices
-import Base.convert
-import Base.sparse
-import Base.size
-import Base.scale
-import Base.diag
 using FactCheck
-import Base.eltype
-import Base.size
-import Base.ndims
-import Base.issym
+import Base: convert, sparse, size, scale, diag, eltype, ndims, issym, ==, *, .*
 export  convert,
 		SparseMatrix,
 		GraphMatrix,
