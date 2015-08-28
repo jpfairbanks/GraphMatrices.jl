@@ -30,5 +30,5 @@ facts("Random Walk Demo") do
 	M = sprand(n,n, p)
 	M.nzval[:] = 1.0
 	A = CombinatorialAdjacency(M)
-	@fact stationarydistribution(A; ncv=10) => x->(all(x.>=0))
+	@fact stationarydistribution(A; ncv=10) --> x->(all(x.>=0))
 end
