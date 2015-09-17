@@ -19,6 +19,7 @@ export  convert,
 		StochasticLaplacian,
 		AveragingAdjacency,
 		AveragingLaplacian,
+                PunchedAdjacency,
 		Noop,
 		diag,
 		degrees,
@@ -100,6 +101,21 @@ end
 function AveragingAdjacency{T}(adjmat::CombinatorialAdjacency{T})
 	return AveragingAdjacency{T}(adjmat)
 end
+
+type PunchedAdjacency{T} <: Adjacency{T}
+	A::NormalizedAdjacency{T}
+        perron::Vector{T}
+
+	function PunchedAdjacency(adjmat::CombinatorialAdjacency)
+                perron=sqrt(adjmat.D)/norm(sqrt(adjmat.D))
+                return new(NormalizedAdjacency(adjmat), perron)
+	end
+end
+
+function PunchedAdjacency{T}(adjmat::CombinatorialAdjacency{T})
+        return PunchedAdjacency{T}(adjmat)
+end
+
 @doc "Noop: a type to represent don't do anything.
 The purpose is to help write more general code for the different scaled GraphMatrix types." ->
 type Noop
@@ -273,6 +289,11 @@ function *{T<:Number}(lapl::Laplacian{T}, x::Vector{T})
 	y = adjacency(lapl)*x
 	z = diag(lapl) .* x
 	return z - y
+end
+
+function *{T<:Number}(adjmat::PunchedAdjacency{T}, x::Vector{T})
+        y=adjmat.A*x
+        return y - dot(adjmat.perron, y)*adjmat.perron
 end
 
 @doc "Symmetrize the matrix.
