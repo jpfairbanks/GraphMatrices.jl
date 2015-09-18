@@ -19,7 +19,7 @@ export  convert,
 		StochasticLaplacian,
 		AveragingAdjacency,
 		AveragingLaplacian,
-                PunchedAdjacency,
+		PunchedAdjacency,
 		Noop,
 		diag,
 		degrees,
@@ -102,9 +102,11 @@ function AveragingAdjacency{T}(adjmat::CombinatorialAdjacency{T})
 	return AveragingAdjacency{T}(adjmat)
 end
 
+perron(adjmat::NormalizedAdjacency) = sqrt(adjmat.D)/norm(sqrt(adjmat.D))
+
 type PunchedAdjacency{T} <: Adjacency{T}
 	A::NormalizedAdjacency{T}
-        perron::Vector{T}
+	perron::Vector{T}
 
 	function PunchedAdjacency(adjmat::CombinatorialAdjacency)
                 perron=sqrt(adjmat.D)/norm(sqrt(adjmat.D))
@@ -115,6 +117,7 @@ end
 function PunchedAdjacency{T}(adjmat::CombinatorialAdjacency{T})
         return PunchedAdjacency{T}(adjmat)
 end
+perron(m::PunchedAdjacency) = m.perron
 
 @doc "Noop: a type to represent don't do anything.
 The purpose is to help write more general code for the different scaled GraphMatrix types." ->

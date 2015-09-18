@@ -148,6 +148,14 @@ function test_symmetry(mat,n)
 	@fact symmetrize(adjmat).A --> adjmat.A
 end
 
+function test_punchedmatrix(mat, n)
+    adjmat = CombinatorialAdjacency(mat)
+    ahatp  = PunchedAdjacency(adjmat)
+    eval, evecs = eigs(ahatp, which=:LM)
+    @fact eval[1]-1 --> less_than_or_equal(0)
+    @fact dot(GraphMatrices.perron(ahatp), evecs[:,1]) --> roughly(0.0, 1e-8)
+end
+
 facts("constructors") do
 	n = 10
 	mat = sparse(spones(sprand(n,n,0.3)))
@@ -174,8 +182,9 @@ end
 facts("other tests") do
 	n = 10
 	mat = symmetrize(sparse(spones(sprand(n,n,0.3))))
-    test_other(mat, n)
+	test_other(mat, n)
 	test_symmetry(mat, n)
+	test_punchedmatrix(mat, n)
 end
 
 end
