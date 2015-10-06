@@ -27,7 +27,8 @@ export  convert,
 		degrees,
 		symmetrize,
 		prescalefactor,
-		postscalefactor
+		postscalefactor,
+		perron
 
 
 
@@ -102,6 +103,10 @@ type AveragingAdjacency{T} <: Adjacency{T}
 end
 function AveragingAdjacency{T}(adjmat::CombinatorialAdjacency{T})
 	return AveragingAdjacency{T}(adjmat)
+end
+
+function perron(adj::CombinatorialAdjacency)
+    return sqrt(adj.D)/norm(sqrt(adj.D))
 end
 
 perron(adjmat::NormalizedAdjacency) = sqrt(adjmat.D)/norm(sqrt(adjmat.D))
@@ -299,6 +304,21 @@ end
 function *{T<:Number}(adjmat::PunchedAdjacency{T}, x::Vector{T})
         y=adjmat.A*x
         return y - dot(adjmat.perron, y)*adjmat.perron
+end
+
+function *{T}(gm::GraphMatrix, b::Array{T,2})
+    m, n = size(b)
+    out = zeros(T, m, n)
+    A_mul_B!(out, gm, b)
+    return out
+end
+
+function A_mul_B!(Y,A::GraphMatrix,B)
+    m, n = size(B)
+    for j in 1:n
+        Y[:, j] = A*B[:,j]
+    end
+    return Y
 end
 
 @doc "Symmetrize the matrix.
