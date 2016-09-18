@@ -5,20 +5,8 @@ import GraphMatrices.SparseMatrix
 
 export test_adjacency, test_laplacian, test_accessors, test_arithmetic, test_other
 
-truthy(x) = (x != nothing) && (x != false)
-
-function subtypepredicate(T)
-	pred(x) = issubtype(typeof(x), T)
-	return pred
-end
-
 function converttest(T::Type, var)
     @test typeof(convert(T, var)) == T
-end
-
-
-function isnot(f::Function)
-	return g(x) = !f(x)
 end
 
 function constructors(mat)
