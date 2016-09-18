@@ -1,5 +1,4 @@
 using GraphMatrices
-using FactCheck
 if VERSION < v"0.4.0-dev"
 	using Docile
 	using Compat
@@ -24,11 +23,13 @@ function stationarydistribution(A::CombinatorialAdjacency; kwargs...)
 	stationarydistribution(R; kwargs...)
 end
 
-facts("Random Walk Demo") do
+println("Random Walk Demo")
+begin
 	n = 100
 	p = 16/n
 	M = sprand(n,n, p)
 	M.nzval[:] = 1.0
 	A = CombinatorialAdjacency(M)
-	@fact stationarydistribution(A; ncv=10) --> x->(all(x.>=0))
+  sd = stationarydistribution(A; ncv=10)
+	@test all(sd.>=0)
 end
