@@ -102,7 +102,6 @@ function test_arithmetic(mat, n)
 	@fact g(lapl) --> 0
 	@fact g(NormalizedLaplacian(adjhat)) --> not(roughly(0))
 	@fact g(StochasticLaplacian(stochmat)) --> not(roughly(0))
-
 	@fact eigs(adjmat, which=:LR)[1][1] --> greater_than(1.0)
 	@fact eigs(stochmat, which=:LR)[1][1] --> roughly(1.0)
 	@fact eigs(avgmat, which=:LR)[1][1] --> roughly(1.0)
