@@ -1,12 +1,7 @@
-VERSION >= v"0.4.0-dev+6521" && __precompile__(true)
+__precompile__(true)
 
 module GraphMatrices
-if VERSION < v"0.4.0-dev"
-	using Docile
-	using Compat
-end
 @doc "A package for using the type system to check types of graph matrices." -> GraphMatrices
-using FactCheck
 import Base: convert, sparse, size, scale, diag, eltype, ndims, issym, ==, *, .*
 export  convert,
 		SparseMatrix,
@@ -44,7 +39,7 @@ Laplacian and its subtypes are used for the different Laplacian matrices.
 Adjacency(lapl::Laplacian) provide a generic function for getting the
 adjacency matrix of a Laplacian matrix. If your subtype of Laplacian does not provide
 an field A for the Adjacency instance, then attach another method to this function to provide
-an Adjacency{T} representation of the Laplacian. The Adjacency matrix here 
+an Adjacency{T} representation of the Laplacian. The Adjacency matrix here
 is the final subtype that corresponds to this type of Laplacian" ->
 abstract Adjacency{T} <: GraphMatrix{T}
 abstract Laplacian{T} <: GraphMatrix
@@ -238,10 +233,7 @@ end
 function convert(::Type{Adjacency}, lapl::Laplacian)
 	return lapl.A
 end
-if VERSION < v"0.4"
-	combinatorialadjacency(adjmat::Adjacency) = adjmat.A
-	# combinatorialadjacency(adjmat::Laplacian) = adjmat.A
-end
+
 function convert(::Type{CombinatorialAdjacency}, adjmat::Adjacency)
 	return adjmat.A
 end
@@ -334,8 +326,4 @@ function symmetrize(adjmat::CombinatorialAdjacency, which=:or)
 	Aprime = symmetrize(adjmat.A, which)
 	return CombinatorialAdjacency(Aprime)
 end
-
-
-
-
 end

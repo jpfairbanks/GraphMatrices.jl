@@ -1,19 +1,12 @@
 module TestGraphMatrices
-using FactCheck
 using GraphMatrices
+using Base.Test
 import GraphMatrices.SparseMatrix
 
 export test_adjacency, test_laplacian, test_accessors, test_arithmetic, test_other
 
-truthy(x) = (x != nothing) && (x != false)
-
-function subtypepredicate(T)
-	pred(x) = issubtype(typeof(x), T)
-	return pred
-end
-
-function isnot(f::Function)
-	return g(x) = !f(x)
+function converttest(T::Type, var)
+    @test typeof(convert(T, var)) == T
 end
 
 function constructors(mat)
@@ -26,66 +19,67 @@ end
 
 function test_adjacency(mat)
     adjmat, stochmat, adjhat, avgmat = constructors(mat)
-    @fact adjmat.D --> vec(sum(mat, 1))
-    @fact adjmat.A --> mat
-    @fact convert(SparseMatrix{Float64}, adjmat) --> sparse(mat)
-    @fact convert(SparseMatrix{Float64}, stochmat) --> truthy
-    @fact convert(SparseMatrix{Float64}, adjhat) --> truthy
-    @fact convert(SparseMatrix{Float64}, avgmat) --> truthy
-    @fact prescalefactor(adjhat) --> postscalefactor(adjhat)
-    @fact postscalefactor(stochmat) --> prescalefactor(avgmat)
-    @fact prescalefactor(adjhat) --> postscalefactor(adjhat)
-    @fact prescalefactor(avgmat) --> Noop()
+    @test adjmat.D == vec(sum(mat, 1))
+    @test adjmat.A == mat
+    @test convert(SparseMatrix{Float64}, adjmat) == sparse(mat)
+    converttest(SparseMatrix{Float64},stochmat)
+    converttest(SparseMatrix{Float64},adjhat)
+    converttest(SparseMatrix{Float64},avgmat)
+    @test prescalefactor(adjhat) == postscalefactor(adjhat)
+    @test postscalefactor(stochmat) == prescalefactor(avgmat)
+    @test prescalefactor(adjhat) == postscalefactor(adjhat)
+    @test prescalefactor(avgmat) == Noop()
 end
 
 function test_laplacian(mat)
     lapl = CombinatorialLaplacian(CombinatorialAdjacency(mat))
-    @fact lapl --> truthy
+    @test typeof(lapl) <: Laplacian
     #constructors that work.
-    @fact adjacency(lapl).A --> mat
-    @fact StochasticAdjacency(adjacency(lapl)) --> truthy
-    @fact NormalizedAdjacency(adjacency(lapl))--> truthy
-    @fact AveragingAdjacency(adjacency(lapl))--> truthy
+    @test adjacency(lapl).A == mat
+    adj = adjacency(lapl)
+    @test typeof(StochasticAdjacency(adj)) <: StochasticAdjacency
+    @test typeof(NormalizedAdjacency(adj)) <: NormalizedAdjacency
+    @test typeof(AveragingAdjacency(adj)) <: AveragingAdjacency
     if VERSION >= v"0.4"
-        @fact convert(Adjacency, lapl)--> truthy
-        @fact convert(SparseMatrix{Float64}, lapl) --> truthy
+        @test typeof(adjacency(lapl)) <: CombinatorialAdjacency
+        converttest(SparseMatrix{Float64},lapl)
     else
-        @fact adjacency(lapl) --> truthy
-        @fact sparse(lapl) --> truthy
+        @test adjacency(lapl) != nothing
+        @test sparse(lapl)    != nothing
     end
 
     adjmat, stochmat, adjhat, avgmat = constructors(mat)
-    @fact adjacency(lapl) --> subtypepredicate(CombinatorialAdjacency)
+    @test typeof(adjacency(lapl))  <: CombinatorialAdjacency
     stochlapl = StochasticLaplacian(StochasticAdjacency{Float64}(adjmat))
-    @fact adjacency(stochlapl) --> subtypepredicate(StochasticAdjacency)
+    @test typeof(adjacency(stochlapl))  <: StochasticAdjacency
     averaginglapl = AveragingLaplacian(AveragingAdjacency{Float64}(adjmat))
-    @fact adjacency(averaginglapl) --> subtypepredicate(AveragingAdjacency)
+    @test typeof(adjacency(averaginglapl))  <: AveragingAdjacency
     
     normalizedlapl = NormalizedLaplacian(NormalizedAdjacency{Float64}(adjmat))
-    @fact adjacency(normalizedlapl) --> subtypepredicate(NormalizedAdjacency)
-    @fact adjacency(normalizedlapl) --> isnot(subtypepredicate(CombinatorialAdjacency))
+    @test typeof(adjacency(normalizedlapl))  <: NormalizedAdjacency
+    @test !( typeof(adjacency(normalizedlapl)) <: CombinatorialAdjacency)
 
     #constructors that fail.
-    @fact_throws CombinatorialAdjacency(lapl)
-    @fact_throws StochasticLaplacian(lapl)# --> truthy
-    @fact_throws NormalizedLaplacian(lapl)# --> truthy
-    @fact_throws AveragingLaplacian(lapl)#  --> truthy
-    @fact_throws convert(CombinatorialAdjacency, lapl) # --> truthy
+    @test_throws MethodError CombinatorialAdjacency(lapl)
+    @test_throws MethodError StochasticLaplacian(lapl)
+    @test_throws MethodError NormalizedLaplacian(lapl)
+    @test_throws MethodError AveragingLaplacian(lapl)
+    @test_throws MethodError convert(CombinatorialAdjacency, lapl)
     L = convert(SparseMatrix{Float64}, lapl)
-    @fact sum(abs(sum(L,1))) --> 0
+    @test sum(abs(sum(L,1))) == 0
 end
 
 function test_accessors(mat, n)
     adjmat, stochmat, adjhat, avgmat = constructors(mat)
     dv = degrees(adjmat)
-    @fact degrees(StochasticLaplacian(stochmat)) --> dv
-    @fact degrees(NormalizedLaplacian(adjhat)) --> dv
-    @fact degrees(AveragingLaplacian(avgmat)) --> dv
+    @test degrees(StochasticLaplacian(stochmat)) == dv
+    @test degrees(NormalizedLaplacian(adjhat)) == dv
+    @test degrees(AveragingLaplacian(avgmat)) == dv
 
     for m in (adjmat, stochmat, adjhat, avgmat)
-        @fact degrees(m) --> dv
-        @fact eltype(m) --> eltype(m.A)
-        @fact size(m) --> (n,n)
+        @test degrees(m) == dv
+        @test eltype(m) == eltype(m.A)
+        @test size(m) == (n,n)
         #@fact length(m) --> length(adjmat.A)
     end
 end
@@ -95,91 +89,91 @@ function test_arithmetic(mat, n)
 	lapl = CombinatorialLaplacian(adjmat)
 	onevec = ones(Float64, n)
 	v = @show adjmat*ones(Float64, n)
-	@fact sum(abs(adjmat*onevec)) --> not(0)
-    @fact sum(abs(stochmat*onevec/sum(onevec))) --> roughly(1)
-	@fact sum(abs(lapl*onevec)) --> 0
+	@test sum(abs(adjmat*onevec)) > 0.0
+  @test_approx_eq sum(abs(stochmat*onevec/sum(onevec))) 1.0
+	@test sum(abs(lapl*onevec)) == 0
 	g(a) = sum(abs(sum(sparse(a),1)))
-	@fact g(lapl) --> 0
-	@fact g(NormalizedLaplacian(adjhat)) --> not(roughly(0))
-	@fact g(StochasticLaplacian(stochmat)) --> not(roughly(0))
+	@test g(lapl) == 0
+	@test g(NormalizedLaplacian(adjhat)) > 1e-13
+	@test g(StochasticLaplacian(stochmat)) > 1e-13
 
-	@fact eigs(adjmat, which=:LR)[1][1] --> greater_than(1.0)
-	@fact eigs(stochmat, which=:LR)[1][1] --> roughly(1.0)
-	@fact eigs(avgmat, which=:LR)[1][1] --> roughly(1.0)
-	@fact eigs(lapl, which=:LR)[1][1] --> greater_than(2.0)
-	@fact_throws eigs(lapl, which=:SM)[1][1] # --> greater_than(-0.0)
+	@test eigs(adjmat, which=:LR)[1][1] > 1.0
+	@test_approx_eq eigs(stochmat, which=:LR)[1][1]  1.0
+	@test_approx_eq eigs(avgmat, which=:LR)[1][1]  1.0
+	@test eigs(lapl, which=:LR)[1][1] > 2.0
+	@test_throws MethodError eigs(lapl, which=:SM)[1][1] # --> greater_than(-0.0)
 	lhat = NormalizedLaplacian(adjhat)
-	@fact eigs(lhat, which=:LR)[1][1] --> less_than(2.0 + 1e-9)
+	@test eigs(lhat, which=:LR)[1][1] < 2.0 + 1e-9
 end
 
 function test_other(mat, n )
 	adjmat = CombinatorialAdjacency(mat)
 	lapl = CombinatorialLaplacian(CombinatorialAdjacency(mat))
-	@fact size(lapl, 1) --> n
-	@fact size(lapl, 2) --> n
-	@fact size(lapl, 3) --> 1
+	@test size(lapl, 1) == n
+	@test size(lapl, 2) == n
+	@test size(lapl, 3) == 1
 	
-	@fact_throws symmetrize(StochasticAdjacency{Float64}(adjmat))
-	@fact_throws symmetrize(AveragingAdjacency{Float64}(adjmat))
-	@fact_throws symmetrize(NormalizedAdjacency(adjmat)).A # --> adjmat.A
+	@test_throws MethodError symmetrize(StochasticAdjacency{Float64}(adjmat))
+	@test_throws MethodError symmetrize(AveragingAdjacency{Float64}(adjmat))
+	@test_throws MethodError symmetrize(NormalizedAdjacency(adjmat)).A # --> adjmat.A
 	
-    context("equality testing ") do
-        @fact CombinatorialAdjacency(mat) --> CombinatorialAdjacency(mat)
+    println("equality testing "); begin
+        @test CombinatorialAdjacency(mat) == CombinatorialAdjacency(mat)
         S = StochasticAdjacency(CombinatorialAdjacency(mat))
-        @fact S.A --> S.A
-        @fact sparse(S) --> not(S.A)
-        @fact adjacency(S) --> S.A
-        @fact NormalizedAdjacency(adjmat) --> not(adjmat)
-        @fact StochasticLaplacian(S) --> not(adjmat)
-        @fact_throws StochasticLaplacian(adjmat) # --> not(adjmat)
+        @test S.A == S.A
+        @test sparse(S) != S.A
+        @test adjacency(S) == S.A
+        @test NormalizedAdjacency(adjmat) != adjmat
+        @test StochasticLaplacian(S) != adjmat
+        @test_throws MethodError StochasticLaplacian(adjmat) # --> not(adjmat)
     end
 end
 
 function test_symmetry(mat,n)
 	adjmat = CombinatorialAdjacency(mat)
 	lapl = CombinatorialLaplacian(CombinatorialAdjacency(mat))
-	@fact size(lapl, 1) --> n
-	@fact size(lapl, 2) --> n
-	@fact size(lapl, 3) --> 1
+	@test size(lapl, 1) == n
+	@test size(lapl, 2) == n
+	@test size(lapl, 3) == 1
 	
-	@fact_throws symmetrize(StochasticAdjacency{Float64}(adjmat))
-	@fact_throws symmetrize(AveragingAdjacency{Float64}(adjmat))
-	@fact_throws symmetrize(NormalizedAdjacency(adjmat)).A # --> adjmat.A
-	@fact symmetrize(adjmat).A --> adjmat.A
+	@test_throws MethodError symmetrize(StochasticAdjacency{Float64}(adjmat))
+	@test_throws MethodError symmetrize(AveragingAdjacency{Float64}(adjmat))
+	@test_throws MethodError symmetrize(NormalizedAdjacency(adjmat)).A # --> adjmat.A
+	@test symmetrize(adjmat).A == adjmat.A
 end
 
 function test_punchedmatrix(mat, n)
     adjmat = CombinatorialAdjacency(mat)
     ahatp  = PunchedAdjacency(adjmat)
     eval, evecs = eigs(ahatp, which=:LM)
-    @fact eval[1]-1 --> less_than_or_equal(0)
-    @fact dot(GraphMatrices.perron(ahatp), evecs[:,1]) --> roughly(0.0, 1e-8)
+    @test eval[1]-1  <= 0
+    @test_approx_eq_eps dot(GraphMatrices.perron(ahatp), evecs[:,1]) 0.0 1e-8
 end
 
-facts("constructors") do
+println("constructors");begin
 	n = 10
 	mat = sparse(spones(sprand(n,n,0.3)))
-	context("Adjacency") do
+	println("Adjacency");begin
         test_adjacency(mat)
     end
 
-	context("Laplacian") do
+	println("Laplacian");begin
         test_laplacian(mat)
     end
 
-	context("Accessors") do
+	println("Accessors");begin
         test_accessors(mat, n)
     end
 end
 
 
-facts("arithmetic") do
+println("arithmetic");begin
 	n = 10
 	mat = symmetrize(sparse(spones(sprand(n,n,0.3))))
     test_arithmetic(mat, n)
 end
 
-facts("other tests") do
+println("other tests");begin
 	n = 10
 	mat = symmetrize(sparse(spones(sprand(n,n,0.3))))
 	test_other(mat, n)
